@@ -54,12 +54,12 @@ error_t rc_parser( const char** pathnames, environ_t* env ) {
                state = ENOVALIDRC;
             }
             else {
-               state = EREGMATCH;
+               state = ENOMATCH;
                break;
             }
          }
          else {
-            state = EREGMATCH; 
+            state = ENOMATCH; 
             break;
          } 
       }
