@@ -2,12 +2,12 @@
 #define ENVIRON_H
 
 #include "utillib.h"
+#include "map_string.h"
 
-typedef struct {
-	//char** shell_env;
-	char** env; 
-} environ_t;
+INIT_MAP_STRUCT( env )
 
-error_t set_env( const char** rc_paths );
+INIT_MAP_FUNC_HEADER( env )
+
+error_t set_env( char** pathnames );
 
 #endif /* ENVIRON_H */

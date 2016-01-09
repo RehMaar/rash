@@ -15,7 +15,7 @@
 
 /* State macro */
 #define OK 0 
-#define ENONVALIDRC -1
+#define ENOVALIDRC -1
 #define ENOMATCH -2
 #define EREGCOMP -3
 
