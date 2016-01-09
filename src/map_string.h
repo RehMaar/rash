@@ -127,4 +127,17 @@ void destroy_##name##_array( char** array ) {                                 \
    free(array);                                                               \
 }
 
+
+#define INIT_MAP_FUNC_HEADER( name )                                          \
+   name##_t* init_##name##_map( char* key, char* value );                     \
+   name##_t* add_back_##name##_map( name##_t* map, char* key, char* value);   \
+   void destroy_##name##_map( name##_t* map );                                \
+   size_t name##_map_length( const name##_t* map );                           \
+   name##_t* get_##name##_node( const name##_t* map, const char* key);        \
+   const char* get_##name##_value( const name##_t* map, const char* key );    \
+   int set_##name##_value( const name##_t* map, const char* key, char* value);\
+   char** name##_map_to_array( const name##_t* map );                         \
+   name##_t* name##_array_to_map( char** array );                             \
+   void destroy_##name##_array( char** array );                               
+
 #endif /* MAP_STRING_H */

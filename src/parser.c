@@ -1,4 +1,5 @@
 #include "parser.h"
+#include <string.h>
 
 size_t count_tokens( char* str, const char delim ) {
    size_t count = 0; 

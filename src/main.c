@@ -2,9 +2,6 @@
 #include <readline/readline.h>
 #include <time.h>
 
-
-
-
 //#include "builtin.h"
 #include "environ.h"
 #include "command.h"
@@ -12,17 +9,13 @@
 
 /*
  * 1. Init: env, ID, etc.
- *  
  * 2. Read-command loop. 
- *
  * 3. Terminate
  */
 
-//extern char** environ; 
-
+#define MAX_CONFIG_COUNT 1
 
 int main( int argc, char **argv ) {
-   environ_t* env; 
    char* line = NULL;
    command_t* cmd = NULL; 
    error_t state; 
@@ -30,9 +23,13 @@ int main( int argc, char **argv ) {
 #if DEBUG 
    clock_t start, stop;
 #endif
-
+   char* pathnames[MAX_CONFIG_COUNT] = { 
+      "$HOME/rashrc/"
+   };
+   
    //Init shell: read config, etc. 
-   if(set_env(&env)) fputs("rash: error while setting environment",stderr);
+   if((state = set_env( pathnames ))) 
+      fprintf( stderr, "rash: error while setting environment - %d\n", state); 
 
    while((line = readline( "$ " ))) {
 #if DEBUG
