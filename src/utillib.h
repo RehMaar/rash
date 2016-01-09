@@ -17,6 +17,7 @@
 #define OK 0 
 #define ENONVALIDRC -1
 #define EREGMATCH -2
+#define EREGCOMP -3
 
 /* Types. */
 typedef int error_t;

@@ -4,7 +4,7 @@
 #include "utillib.h"
 
 typedef struct {
-	char** shell_env;
+	//char** shell_env;
 	char** env; 
 } environ_t;
 
