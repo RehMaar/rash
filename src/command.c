@@ -1,6 +1,5 @@
 #include <sys/wait.h>
 #include <string.h>
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -17,22 +16,22 @@ command_t* parse_cmd( char* line ) {
    size_t count, i = 0; 
    char** tmp = split( line, ' ', &count );
    if(tmp == NULL ) return NULL;
-
    cmd->util = strdup(tmp[0]);
    cmd->args_count = count;
    cmd->args = ALLOCATE( char*, count+1);
-   for(i = 0; i < count; i++ ) {
+   for(i = 0; i < count; i++ ) 
       cmd->args[i] = strdup(tmp[i]);
-      cmd->args[count] = NULL;
-   }
-   if(tmp != NULL ) { 
+   cmd->args[count] = NULL;
+
+   if(tmp) { 
       for(i = 0; i < count; i++)
-         if(tmp[i] != NULL )free(tmp[i]);
+         if(tmp[i])free(tmp[i]);
       free(tmp);
    }
    return cmd;
 }
 error_t execute( command_t* cmd, int* stat ) {
+
    pid_t pid;
    int status;
 

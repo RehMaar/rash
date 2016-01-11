@@ -7,13 +7,11 @@
 #endif
 
 static FILE* get_next( const char* pathname ) {
-   FILE* fd;
    if(access(pathname, R_OK) != 0 ) return NULL;
    return fopen(pathname, "r");
 }
 
-error_t rc_parser( const char** pathnames, env_t** env ) {
-   env_t* tmp; 
+error_t rc_parser( char** pathnames, env_t** env ) {
    FILE* fd = NULL; 
    char* line = NULL;
    size_t len = 0;
@@ -28,7 +26,7 @@ error_t rc_parser( const char** pathnames, env_t** env ) {
    char* regvalid ="^(#|[[:space:]]*)"; 
    regex_t regex_str, regex_valid;
 
-   if(regcomp(&regex_str, regvalid, REG_EXTENDED) != 0)
+   if(regcomp(&regex_str, regstr, REG_EXTENDED) != 0)
       return EREGCOMP;
 
    if(regcomp(&regex_valid, regvalid, REG_EXTENDED) != 0) {
@@ -49,7 +47,7 @@ error_t rc_parser( const char** pathnames, env_t** env ) {
             char* save;
             char* tmp_str = strtok_r( line, "=", &save);
             printf("%s %s", tmp_str, save );
-            tmp = add_back_env_map( tmp, tmp_str, save );        
+            *env = add_back_env_map( *env, tmp_str, save );        
          } 
          else if( state == REG_NOMATCH ) {
             if((state = regexec(&regex_valid,line,0,NULL,0)) == 0 ) {
@@ -76,6 +74,5 @@ error_t rc_parser( const char** pathnames, env_t** env ) {
  #if DEBUG
    fprintf(stderr, "Time: %f\n", (double)(clock()-start)/CLOCKS_PER_SEC);
  #endif
-   (*env) = tmp;
    return state;
 }

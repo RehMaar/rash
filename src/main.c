@@ -12,8 +12,7 @@
  * 2. Read-command loop. 
  * 3. Terminate
  */
-
-#define MAX_CONFIG_COUNT 1
+#define MAX_CONFIG_COUNT 2
 
 int main( int argc, char **argv ) {
    char* line = NULL;
@@ -24,9 +23,8 @@ int main( int argc, char **argv ) {
    clock_t start, stop;
 #endif
    char* pathnames[MAX_CONFIG_COUNT] = { 
-      "$HOME/rashrc/"
+      "$HOME/rashrc", NULL
    };
-   
    //Init shell: read config, etc. 
    if((state = set_env( pathnames ))) 
       fprintf( stderr, "rash: error while setting environment - %d\n", state); 
@@ -57,5 +55,8 @@ int main( int argc, char **argv ) {
       fprintf(stderr,"Time: %f\n",(double)(stop-start)/CLOCKS_PER_SEC);
 #endif 
    }
+
+   /* Need memory manager. */
+   free(pathnames[0]); 
    return 0;
 }
