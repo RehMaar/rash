@@ -54,20 +54,17 @@ int is_empty( const char* line ) {
    return true;
 }
 
-void clear_buffers( command_t* buf, environ_t** envir ) {
-   buf->env  = NULL;                  
-   buf->name = NULL;                  
-   buf->args = NULL;                  
-   buf->next = NULL;                  
-   buf->type = 0;
-   *envir = NULL;
-}
+#define CLEAR_BUFFERS( buf, envir )  \
+   buf.env  = NULL;                  \
+   buf.name = NULL;                  \
+   buf.args = NULL;                  \
+   buf.next = NULL;                  \
+   envir = NULL;
 
-#define WRITE_BUFFER( buf, tok, start, end, cmd_type )   \
+#define WRITE_BUFFER( buf, tok, start, end )             \
     length = end-start+2;                                \
     buf.name = strdup( tok[start] );                     \
     buf.args = ALLOCATE(char*, length);                  \
-    buf.type = cmd_type;                                 \
     for( int iter = 0; iter < length-1; iter++ ) {       \
        buf.args[iter] = strdup(tok[start+iter]);         \
     }                                                    \
@@ -80,7 +77,7 @@ int parse_cmd( char** tokens, command_t** head ) {
    char* line = NULL, *prev = NULL;
    int i = 0, cmd_s = 0, cmd_e = 0, length;
     
-   clear_buffers( &buffer, &env );
+   CLEAR_BUFFERS( buffer, env )
    while((line = tokens[i])) {
       if( line[0] == DOLLAR && strlen(line) != 0) {
          char* env;
@@ -132,10 +129,10 @@ int parse_cmd( char** tokens, command_t** head ) {
       if( strlen(line) == 1) {
          if( line[0] == ';' ) {   
             if( cmd_s <= cmd_e ) {
-               WRITE_BUFFER(buffer,tokens,cmd_s,cmd_e, SIMPLE)
+               WRITE_BUFFER(buffer,tokens,cmd_s,cmd_e)
             }
             cmd_list_add_back( head, &buffer);            
-            clear_buffers( &buffer, &env );
+            CLEAR_BUFFERS( buffer, env )
             cmd_s = i+1; 
          }
          else if( line[0] == '=' && i == (cmd_s+1)) {
@@ -158,12 +155,11 @@ int parse_cmd( char** tokens, command_t** head ) {
        i++;
    }
    if( cmd_s <= cmd_e ) {
-      WRITE_BUFFER(buffer,tokens,cmd_s,cmd_e,SIMPLE)
+      WRITE_BUFFER(buffer,tokens,cmd_s,cmd_e)
       cmd_list_add_back( head, &buffer);                  
    }
    else if( env ) {
-      buffer.type = ENVIRON;
       cmd_list_add_back( head, &buffer);                  
    }
-   return 0;
+   return SUCCESS;
 }

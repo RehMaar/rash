@@ -65,7 +65,7 @@ int read_script( const char* configname ) {
          continue;
       }
       destroy_tokens( tokens );
-      if(( state = execute( head ) )) {
+      if(( state = execute( head, &stat ) )) {
          fprintf(stderr, "Error: %d\n", state); 
          continue;
       }

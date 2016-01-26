@@ -7,8 +7,9 @@
 #include "utillib.h"
 #include "lexer.h"
 #include "parser.h"
-#include "sig_manager.h"
 
+
+#define DEBUG 1
 #define __GNU_READLINE 0
 
 
@@ -18,22 +19,18 @@
 int main( int argc, char **argv ) {
 
    char* line = NULL;
-   char buf[4];
 #if __GNU_READLINE != 1
    size_t len = 0;
 #endif
    int state; 
    int stat;
-
-  (void)set_signal();
-
+  
    const char* confignames[MAX_CONFIG_COUNT+1] = { 
       "$HOME/rashrc", NULL
    };
 
-   (void)run_init_script( confignames );  
-   (void)set_default_environ();
-
+   run_init_script( confignames );  
+   set_default_environ();
 #if __GNU_READLINE == 1
    while(( line = readline( getenv("PROMPT") ))) {
 #else
@@ -53,25 +50,27 @@ int main( int argc, char **argv ) {
          continue;
       }
       if((state = parse_cmd( tokens, &head ))) {
-         (void)destroy_tokens( tokens );
-         (void)cmd_list_free( head ); 
+         destroy_tokens( tokens );
+         cmd_list_free( head ); 
          fprintf( stderr, "Error while parsing command: %d\n", state);  
          continue;
       }
 #if DEBUG == 1
       SHOW(tokens)
-      (void)print_commands( head );
+      print_commands( head );
 #endif
-      if(( state = execute( head )) != SUCCESS ) { 
+      if(( state = execute( head, &stat )) == SUCCESS ) { 
+         if( stat != 0 )
+            fprintf( stderr,"Error:%d\n", stat);
+      }
+      else {
          fprintf( stderr,"Error: %s\n", strerror(state));     
       }
-      sprintf(buf, "%d", state );
-      (void)set_shell_var_key( "?", buf );
-      (void)destroy_tokens( tokens );
-      (void)cmd_list_free( head ); 
+      destroy_tokens( tokens );
+      cmd_list_free( head ); 
       head = NULL;
    }
    if(line) free(line);
-   (void)destroy_shell_var();
+   destroy_shell_var();
    return 0;
 }
