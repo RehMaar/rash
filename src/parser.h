@@ -1,8 +1,10 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "utillib.h"
+#include <string.h>
+#include <malloc.h>
 
-char** split( char* line, const char delim, size_t* count);
+char** splittok( const char* line );
 
+int is_empty( const char* line );
 #endif /* PARSER_H */

@@ -16,7 +16,7 @@ typedef struct name##_t {                                                     \
 }  name##_t;                                                                  \
 
 /*
- * 1. name_t* init_name_map( char* key, char* key )
+ * 1. name_t* init_name_map( char* key, char* value )
  *     
  * 2. name_t* add_back_name_map( name_t* map, char* key, char* value)
  *    If map == NULL ret new map.
@@ -54,17 +54,20 @@ name##_t* add_back_##name##_map( name##_t* map, char* key, char* value)  {    \
    else  map = tmp_map;                                                       \
    return map;                                                                \
 }                                                                             \
-static name##_t* destroy_##name##_node( name##_t* node ) {                    \
-   if( node ) {                                                               \
-      name##_t* tmp = node->next;                                             \
-      free(node->key); free(node->value); free(node);                         \
-      return tmp;                                                             \
-   }                                                                          \
-   else                                                                       \
-      return NULL;                                                            \
+name##_t* add_back_##name##_node( name##_t* map, name##_t* node ) {           \
+   name##_t* tmp = map;                                                       \
+   while( tmp->next ) tmp = tmp->next;                                        \
+   tmp->next = node;                                                          \
+   return map;                                                                \
 }                                                                             \
-void destroy_##name##_map( name##_t* map ) {                                  \
-   while((map = destroy_##name##_node(map)));                                 \
+void destroy_##name##_map( name##_t* node ) {                                 \
+   while( node ) {                                                            \
+      name##_t* tmp = node->next;                                             \
+      if(node->key)  free(node->key);                                         \
+      if(node->value)free(node->value);                                       \
+      free(node);                                                             \
+      node = tmp;                                                             \
+   }                                                                          \
 }                                                                             \
 size_t name##_map_length( const name##_t* map ) {                             \
    size_t acc = 0;                                                            \
@@ -84,14 +87,16 @@ const char*  get_##name##_value( const name##_t* map, const char* key ) {     \
    name##_t* tmp = get_##name##_node(map,key);                                \
    return tmp == NULL ? NULL : tmp->value;                                    \
 }                                                                             \
-int set_##name##_value( const name##_t* map, const char* key, char* value) {  \
-   name##_t* tmp = get_##name##_node(map,key);                                \
-   if(tmp->value) {                                                           \
+name##_t* set_##name##_value( name##_t* map, const char* key, char* value) {  \
+   name##_t* tmp;                                                             \
+   if((tmp = get_##name##_node(map,key))) {                                   \
       free(tmp->value);                                                       \
       tmp->value = strdup(value);                                             \
-      return OK;                                                              \
    }                                                                          \
-   return ENOMATCH;                                                           \
+   else {                                                                     \
+      map = add_back_##name##_map( map, (char*)key, value );                  \
+   }                                                                          \
+   return map;                                                                \
 }                                                                             \
 char** name##_map_to_array( const name##_t* map ) {                           \
    name##_t* tmp = (name##_t*)map;                                            \
@@ -135,7 +140,7 @@ void destroy_##name##_array( char** array ) {                                 \
    size_t name##_map_length( const name##_t* map );                           \
    name##_t* get_##name##_node( const name##_t* map, const char* key);        \
    const char* get_##name##_value( const name##_t* map, const char* key );    \
-   int set_##name##_value( const name##_t* map, const char* key, char* value);\
+   name##_t* set_##name##_value( name##_t* map, const char* key, char* value);\
    char** name##_map_to_array( const name##_t* map );                         \
    name##_t* name##_array_to_map( char** array );                             \
    void destroy_##name##_array( char** array );                               

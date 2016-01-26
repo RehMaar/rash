@@ -1,24 +1,21 @@
-CC=gcc
-CFLAGS=-Wall
+# Declaration of variables
+CC = gcc
+CC_FLAGS = -Wall -pedantic 
 SRC=src
 OBJ=obj
-OBJF=main.o,command.o,parse.o,environ.o
+# File names
+EXEC = rash
+SOURCES = $(wildcard $(SRC)/*.c)
+OBJECTS = $(SOURCES:$(SRC).c=$(OBJ)/.o)
 
-all: rash
+# Main target
+$(EXEC): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $(EXEC) -lreadline
 
-rash: $(SRC)/main.o $(OBJ)/parse.o $(OBJ)/command.o 
-	$(CC) -o $@ $? $(CFLAGS) -lreadline
+# To obtain object files
+%.o: %.cpp
+	$(CC) -c $(CC_FLAGS) $< -o $@
 
-$(OBJ)/main.o: $(SRC)/main.c
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-$(OBJ)/parse.o: $(SRC)/parse.c
-	$(CC) -c -o $@ $< $(CFLAGS)
-
-$(OBJ)/command.o: $(SRC)/command.c
-	$(CC) -c -o $@ $< $(CFLAGS)  
-$(OBJ)/environ.o: $(SRC)/environ.c
-	$(CC) -c -o $@ $< $(CFLAGS)
-
+# To remove generated files
 clean:
-	rm -rf $(OBJ)/{$(OBJF)}
+	rm -f $(EXEC) $(OBJECTS)

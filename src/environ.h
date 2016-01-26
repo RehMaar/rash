@@ -4,10 +4,15 @@
 #include "utillib.h"
 #include "map_string.h"
 
-INIT_MAP_STRUCT( env )
+INIT_MAP_STRUCT( environ )
 
-INIT_MAP_FUNC_HEADER( env )
+INIT_MAP_FUNC_HEADER( environ )
 
-error_t set_env( char** pathnames );
+void destroy_shell_var( void );
+
+void set_cwd( void );
+void set_default_environ( void );
+error_t set_shell_var( environ_t* env );
+char* get_shell_var( const char* key );
 
 #endif /* ENVIRON_H */

@@ -1,24 +1,54 @@
-#ifndef COMMANDS_H
-#define COMMANDS_H
+#ifndef COMMAND_H
+#define COMMAND_H
 
 #include "utillib.h"
+#include "environ.h"
+/*
+   Metachar: ; < > | $ = 
+   
+   Allowed commands: 
+      list         --  cmd; cmd; cmd
+      pipes        --  cmd | cmd | cmd
+      redirections --  cmd > file
+      environs     --  name=value; name=value cmd
+   Sample: 
+      LANG=ru_RU.UTF-8 ls -l; TEST=test   
+      Tokens:
+         LANG
+         =
+         ru_RU.UTF-8
+         ls
+         -l
+         ;
+         TEST
+         =
+         test
+*/
 
-typedef struct {
-   char* util; /* All programms in command.*/
-   char** args; /* Arguments located in the progs order respectively.*/
-   size_t args_count; 
-} command_t; 
-
-#define FREE_COMMAND( cmd )                  \
-   if(cmd != NULL ) {                        \
-      if(cmd->util != NULL ) free(cmd->util);\
-      if(cmd->args != NULL ) free(cmd->args);\
-      free(cmd);                             \
-   }  
+enum {
+   SIMPLE,
+   ENVIRON,
+   REDIRECTED,
+   PIPE_IN,
+   PIPE_OUT,
+   PIPE
+} cmd_type_t;
 
 
-command_t* parse_cmd( char* line );
+typedef struct command_t {
+   environ_t* env; 
+   char* name;
+   char** args;
+   
+   struct command_t* next;
+   //struct command_t* group; /* */
+} command_t;
 
-error_t execute( command_t* cmd, int *stat );
+/* Add a node to the end of list from the local atack var. */
+void cmd_list_add_back( command_t** list, command_t* tmplist );
+/* Free allocated space. */
+void cmd_list_free( command_t * list);
+void print_commands( const command_t* head );
 
-#endif /* COMMANDS_H */
+error_t execute( command_t* head, int *stat );
+#endif /* COMMAND_H */
