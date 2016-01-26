@@ -64,7 +64,7 @@ void print_commands( const command_t* head ) {
          if(head_tmp->env) {                                          
            environ_t* head_env = head_tmp->env;                     
            while( head_env ) {                                        
-               printf("Environ: %s -- %s\n", head_env->key, head_env->value);  
+               printf("Environ: %s=%s\n", head_env->key, head_env->value);  
                head_env = head_env->next;                           
            }                                                            
          }                                                              
@@ -73,9 +73,9 @@ void print_commands( const command_t* head ) {
    }
 }
 
-error_t execute( command_t* head, int *stat ) {
+int execute( command_t* head, int *stat ) {
 
-   error_t state = 0; 
+   int state = 0; 
    command_t* tmp = head;
    *stat = 0;
 
@@ -110,15 +110,41 @@ error_t execute( command_t* head, int *stat ) {
    return state;
 }
 /*
-error_t execute( command_t* head, int *stat ) {
-   error_t state = 0; 
+int exec_simple( command_t* cmd ) {
+   int state = 0;
+
+   return state;
+}
+
+int exec_redirected( command_t* cmd ) {
+   int state = 0;
+
+   return state;
+}
+
+int execute( command_t* head ) {
    command_t* tmp = head;
    pid_t pid;
-   int status;
-   *stat = 0;
+   int status = 0;
 
    while( tmp ) {
-      if()   
+      switch( tmp->type ) {
+         case ENVIRON:
+            (void)set_shell_var( tmp->env );
+            break;
+         case SIMPLE:
+            status = exec_simple( tmp );
+            break;
+         case REDIRECTED:
+            status = exec_redirected( tmp );
+            break;         
+         case GROUP:
+            break;
+        default:
+         fprintf( stderr, "Unknown type: %s", tmp->name );
+         status = -1;
+      }
    }
+   return 
 }
 */

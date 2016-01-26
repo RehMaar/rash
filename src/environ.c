@@ -5,7 +5,6 @@
 
 INIT_MAP_FUNC( environ ) 
 
-//extern char** environ;
 static environ_t* shell_environ;
 
 #define MAX_DEFAULT 1
@@ -22,7 +21,6 @@ void set_cwd( void ) {
    if((cwd = getcwd(NULL, 0))) {
       if((old_cwd = getenv( "PWD"))){
          setenv( "OLDPWD", old_cwd, 1);
-        //free(old_cwd);
       }
       else {
          setenv( "OLDPWD", cwd, 1 );
@@ -36,13 +34,23 @@ void set_cwd( void ) {
 }
 
 void set_default_environ( void ) {
-   set_cwd();
+   pid_t pid; char buf[6];
+
+   /* Set PWD and OLDPWD variables. */
+   (void)set_cwd();
+
+   /* Set $ -- shell's pid, ? -- exit status pid. */
+   sprintf( buf, "%d", getpid()); 
+   shell_environ = set_environ_value( shell_environ, "$", buf);
+   shell_environ = set_environ_value( shell_environ, "?", "0");
+
+   /* Set other shell's variables. */
    for( int i = 0; i < MAX_DEFAULT;i++) {
       setenv( default_vars[i].name, default_vars[i].value, 0);
    }
 }
 
-error_t set_shell_var( environ_t* env ) {
+int set_shell_var( environ_t* env ) {
    if( env && env->value && env->key ) {
       shell_environ = set_environ_value( shell_environ, env->key, env->value );  
       return SUCCESS;
@@ -52,7 +60,14 @@ error_t set_shell_var( environ_t* env ) {
 char* get_shell_var( const char* key ) {
    return get_environ_value( shell_environ, key );
 }
-
+void print_shell_var( void ) {
+   environ_t* tmp = shell_environ;
+   while( tmp ) {
+      if( tmp->key && tmp->value )
+         printf("%s=%s\n",tmp->key,tmp->value);
+      tmp = tmp->next;
+   }
+}
 void destroy_shell_var( void ) {
-   destroy_environ_map( shell_environ );
+   (void)destroy_environ_map( shell_environ );
 } 

@@ -48,16 +48,16 @@ name##_t* init_##name##_map( char* key, char* value) {                        \
    record->next  = NULL;                                                      \
    return record;                                                             \
 }                                                                             \
-name##_t* add_back_##name##_map( name##_t* map, char* key, char* value)  {    \
-   name##_t* tmp_map = init_##name##_map( key, value);                        \
-   if(map) map->next = tmp_map;                                               \
-   else  map = tmp_map;                                                       \
-   return map;                                                                \
-}                                                                             \
 name##_t* add_back_##name##_node( name##_t* map, name##_t* node ) {           \
    name##_t* tmp = map;                                                       \
    while( tmp->next ) tmp = tmp->next;                                        \
    tmp->next = node;                                                          \
+   return map;                                                                \
+}                                                                             \
+name##_t* add_back_##name##_map( name##_t* map, char* key, char* value)  {    \
+   name##_t* tmp_map = init_##name##_map( key, value);                        \
+   if(map)  map = add_back_##name##_node(map, tmp_map);                       \
+   else  map = tmp_map;                                                       \
    return map;                                                                \
 }                                                                             \
 void destroy_##name##_map( name##_t* node ) {                                 \

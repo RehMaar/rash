@@ -29,9 +29,7 @@ enum {
    SIMPLE,
    ENVIRON,
    REDIRECTED,
-   PIPE_IN,
-   PIPE_OUT,
-   PIPE
+   GROUP
 } cmd_type_t;
 
 
@@ -41,7 +39,7 @@ typedef struct command_t {
    char** args;
    
    struct command_t* next;
-   //struct command_t* group; /* */
+//   struct command_t* group; /* */
 } command_t;
 
 /* Add a node to the end of list from the local atack var. */
@@ -50,5 +48,6 @@ void cmd_list_add_back( command_t** list, command_t* tmplist );
 void cmd_list_free( command_t * list);
 void print_commands( const command_t* head );
 
-error_t execute( command_t* head, int *stat );
+int execute( command_t* head, int *stat );
+
 #endif /* COMMAND_H */

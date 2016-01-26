@@ -12,7 +12,7 @@ int is_shell_var( char c );
 int is_blank( char c );
 
 
-error_t parse_cmd( char** tokens, command_t** head );
+int parse_cmd( char** tokens, command_t** head );
 
 
 #endif /* LAXER_H */

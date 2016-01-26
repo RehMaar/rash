@@ -9,13 +9,20 @@
 #include "parser.h"
 
 
+#define DEBUG 1
+#define __GNU_READLINE 0
+
+
 #define MAX_CONFIG_COUNT 1
-#define DEBUG
+
 
 int main( int argc, char **argv ) {
 
    char* line = NULL;
-   error_t state; 
+#if __GNU_READLINE != 1
+   size_t len = 0;
+#endif
+   int state; 
    int stat;
   
    const char* confignames[MAX_CONFIG_COUNT+1] = { 
@@ -24,27 +31,32 @@ int main( int argc, char **argv ) {
 
    run_init_script( confignames );  
    set_default_environ();
-
+#if __GNU_READLINE == 1
    while(( line = readline( getenv("PROMPT") ))) {
+#else
+   while( getline( &line, &len, stdin ) != -1 ) {
+#endif
       command_t* head = NULL; 
       char** tokens = NULL;
 
       if( line == NULL ) break;
       if( is_empty( line ) == true) continue;
+#if __GNU_READLINE != 1
+      if(line[strlen(line)-1] == '\n') line[strlen(line)-1]=0;
+#endif
 
       if((tokens = splittok( (const char*)line )) == NULL ) {
-         FREE_MATRIX(tokens)
          fputs( "Error while parsing command.\n", stderr );
          continue;
       }
-      
       if((state = parse_cmd( tokens, &head ))) {
-         FREE_MATRIX(tokens)
+         destroy_tokens( tokens );
          cmd_list_free( head ); 
          fprintf( stderr, "Error while parsing command: %d\n", state);  
          continue;
       }
-#ifdef DEBUG
+#if DEBUG == 1
+      SHOW(tokens)
       print_commands( head );
 #endif
       if(( state = execute( head, &stat )) == SUCCESS ) { 
@@ -54,7 +66,7 @@ int main( int argc, char **argv ) {
       else {
          fprintf( stderr,"Error: %s\n", strerror(state));     
       }
-      FREE_MATRIX(tokens)
+      destroy_tokens( tokens );
       cmd_list_free( head ); 
       head = NULL;
    }

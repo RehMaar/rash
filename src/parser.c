@@ -1,13 +1,6 @@
 #include "parser.h"
 #include "lexer.h"
 
-#define ZERO         '\0'
-#define QWMARK       '\''
-#define QQMARK       '\"'
-#define BLANK_END    ' '
-#define NL           '\n'
-#define DOLLAR       '$'
-
 static int tokens_count( const char* test_str ) {
 
    int count = 0;
@@ -24,8 +17,11 @@ static int tokens_count( const char* test_str ) {
       } 
       else if( c == DOLLAR ) {
          count++;i++;
-         while(is_blank( c = test_str[i++]) || is_metachar(c) ) {
-            if( c == ZERO ) return count;
+         if(( c = test_str[i++])) {
+            while(is_blank(c) || is_metachar(c)) {
+               if( c == ZERO ) return count;
+               c = test_str[i++];
+            }
          }
       }
       else if( is_metachar(c) || is_shell_var(c) ) {
@@ -53,7 +49,6 @@ char** splittok( const char* line ) {
    if( count <= 0 )  return NULL;
    tokens = calloc(sizeof(char*),(count+1));
    c = last_char = tmp[0];
-   
    for(; j < count; j++ ) {
       while((c = tmp[i++])) {
          if ( c == QWMARK || c == QQMARK ) {
@@ -104,4 +99,11 @@ char** splittok( const char* line ) {
    tokens[count] = NULL;
    
    return tokens;
+}
+
+void destroy_tokens( char** tokens ) {
+   if( tokens ) {
+      for( int i = 0; tokens[i]; i++) free(tokens[i]); 
+      free( tokens );
+   }
 }

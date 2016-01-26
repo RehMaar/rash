@@ -11,10 +11,7 @@
 /* Memmory managing. */
 #define ALLOCATE( type, count) (type*)calloc(sizeof(type), count)
 
-#define FREE_MATRIX( ptr ) if( ptr ) {                            \
-   int ptr##_i = 0; while( ptr[ptr##_i]) free(ptr[ptr##_i++]);    \
-   free(ptr);                                                     \
-}
+
 
 #define SHOW( array )                  \
    if( array ) {                       \
@@ -24,6 +21,14 @@
       }                                \
    }
  
+/* Char's alias. */
+#define ZERO         '\0'
+#define QWMARK       '\''
+#define QQMARK       '\"'
+#define BLANK_END    ' '
+#define NL           '\n'
+#define DOLLAR       '$'
+
 
 /* State macro */
 
@@ -35,12 +40,11 @@
 #define ENOEXT       -5
 
 
-typedef int error_t;
 /*
 typedef struct {
    char* util;
    int   code; 
-} error_t;
+} int;
 */
 /*
 typedef enum {

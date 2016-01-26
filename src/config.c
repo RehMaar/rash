@@ -7,7 +7,7 @@
 #include <errno.h>
 
 
-static error_t sub_env( char** str ) {
+static int sub_env( char** str ) {
    char* tmp, *token, *value, *save;
    token = strtok_r( *str, "$/", &save);
    if((value = getenv(token)) == NULL )
@@ -19,7 +19,7 @@ static error_t sub_env( char** str ) {
    return SUCCESS;
 }
 
-error_t run_init_script( const char** confignames ) {
+int run_init_script( const char** confignames ) {
    int i = 0;
    while( confignames[i]) {
       char* config = strdup( confignames[i++]);
@@ -32,13 +32,13 @@ error_t run_init_script( const char** confignames ) {
 
 #define MAX_LINE_LENGTH 256
 
-error_t read_script( const char* configname ) {
+int read_script( const char* configname ) {
 
    FILE* fs; 
    char* line = NULL;
    size_t len = 0;
    int stat; 
-   error_t state; 
+   int state; 
    command_t* head = NULL;
    char** tokens = NULL;
 
@@ -61,11 +61,10 @@ error_t read_script( const char* configname ) {
          continue; 
       if(( state = parse_cmd( tokens, &head ))) {
          fprintf(stderr, "Error: %d\n", state); 
-         FREE_MATRIX( tokens );
+         destroy_tokens( tokens );
          continue;
       }
-      FREE_MATRIX( tokens )
-
+      destroy_tokens( tokens );
       if(( state = execute( head, &stat ) )) {
          fprintf(stderr, "Error: %d\n", state); 
          continue;

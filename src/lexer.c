@@ -13,9 +13,9 @@ int is_metachar( char c ) {
       case '<': break;
       case '\'': break;
       case '\"': break;
-//      case '&': break;
-//      case ')': break;
-//      case '(': break;
+      case '&': break;
+      case ')': break;
+      case '(': break;
       default: state = false;
    }
    return state;
@@ -25,7 +25,7 @@ int is_shell_var( char c ) {
    int state = true;
    switch( c ) {
       case '?': break;
-      case '!': break;
+//      case '!': break;
       case '$': break;
       case '=': break;
       default: state = false;
@@ -70,7 +70,7 @@ int is_empty( const char* line ) {
     }                                                    \
     buf.args[length-1] = NULL;
 
-error_t parse_cmd( char** tokens, command_t** head ) {
+int parse_cmd( char** tokens, command_t** head ) {
 
    command_t buffer;
    environ_t* env = NULL; 
@@ -79,23 +79,45 @@ error_t parse_cmd( char** tokens, command_t** head ) {
     
    CLEAR_BUFFERS( buffer, env )
    while((line = tokens[i])) {
-      if( line[0] == '$' && strlen(line)!=0) {
-         char* tmp = strtok( line, "$");
+      if( line[0] == DOLLAR && strlen(line) != 0) {
          char* env;
-         if((env  = getenv(tmp))|| ( env = get_shell_var( tmp ))) {
-            free(tokens[i]);
-            tokens[i] = strdup(env);
+         char* tmp = strtok( line, "$");
+         if( tmp ) {
+            if((env  = getenv(tmp))|| ( env = get_shell_var( tmp ))) {
+               free(tokens[i]);
+               tokens[i] = strdup(env);
+            }
+         }
+         else if( line[1] == DOLLAR ) {
+            char buf[2];
+            sprintf(buf, "%c", DOLLAR );
+            if(( env = get_shell_var( buf ))) {
+               free(tokens[i]);
+               tokens[i] = strdup(env);
+            }
          }
       }
       else if( line[0] == '\"') { /* TODO: sub_env */
+         char* buf;
          char* tmp = strtok(line, "\"\"");
-         char* buf = strdup( tmp );
+         if( tmp ) {
+             buf = strdup( tmp );
+         }
+         else {
+            buf = strdup("");
+         }
          free(tokens[i]);
          tokens[i] = buf; 
       } 
       else if( line[0] == '\'') {
+         char* buf;
          char* tmp = strtok(line, "''");
-         char* buf = strdup( tmp );
+         if( tmp ) {
+            buf = strdup( tmp );
+         }
+         else  {
+            buf = strdup( "" );
+         }
          free(tokens[i]);
          tokens[i] = buf; 
       }

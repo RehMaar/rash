@@ -3,6 +3,6 @@
 
 #include "utillib.h"
 
-error_t exec_builtin( char* name, char** args );
+int exec_builtin( char* name, char** args );
 
 #endif /* BUILTIN_H */
