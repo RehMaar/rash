@@ -1,3 +1,5 @@
+#define __GNU_SOURCE
+
 #include <sys/wait.h>
 #include <string.h>
 #include <stdio.h>
@@ -7,6 +9,7 @@
 #include "command.h"
 #include "environ.h"
 #include "builtin.h"
+#include "sig_manager.h"
 
 static command_t *cmd_list_create( command_t* list ){
 	command_t *node;
@@ -15,6 +18,7 @@ static command_t *cmd_list_create( command_t* list ){
    node->env = list->env;
    node->name = list->name;
    node->args = list->args;
+   node->type = list->type;
    node->next = NULL;
 	return node;		
 }
@@ -49,22 +53,24 @@ void cmd_list_free(command_t *list){
    }
 }
 
+#if DEBUG == 1
 void print_commands( const command_t* head ) {
    if( head ) {                                                         
       command_t* head_tmp = (command_t*)head;                                     
       while( head_tmp ) {                                             
-         puts( "New command" );
-         if(head_tmp->name) printf("Name: %s\n", head_tmp->name);   
+         puts( "<--- Command --->" );
+         printf("> Type: %d\n", head_tmp->type);
+         if(head_tmp->name) printf("> Name: %s\n", head_tmp->name);   
          if(head_tmp->args) {                                         
             int head_iter = 0;                                        
             while(head_tmp->args[head_iter]) {                      
-               printf("Args: %s\n", head_tmp->args[head_iter++]);   
+               printf("> Args: %s\n", head_tmp->args[head_iter++]);   
             }                                                           
          }                                                              
          if(head_tmp->env) {                                          
            environ_t* head_env = head_tmp->env;                     
            while( head_env ) {                                        
-               printf("Environ: %s=%s\n", head_env->key, head_env->value);  
+               printf("> Environ: %s=%s\n", head_env->key, head_env->value);  
                head_env = head_env->next;                           
            }                                                            
          }                                                              
@@ -72,51 +78,49 @@ void print_commands( const command_t* head ) {
       }                                                                 
    }
 }
+#endif
 
-int execute( command_t* head, int *stat ) {
-
-   int state = 0; 
-   command_t* tmp = head;
-   *stat = 0;
-
-   while( tmp ) {
-      if( tmp->name == NULL ) {
-         (void)set_shell_var( tmp->env );
-      }
-      else if( exec_builtin( tmp->name, tmp->args ) != ENOEXT ) {
-         *stat = state;
-      }
-      else {
-         pid_t pid;
-         int status;
-
-         pid = fork();
-         if( pid == 0 ) {
-            if(tmp->env) 
-               setenv(tmp->env->key, tmp->env->value, true );
-            execvp( tmp->name, tmp->args );
-            _exit(EXIT_FAILURE);
-         }
-         else if( pid < 0 ) {
-            state =  errno; 
-         }
-         else {
-            waitpid( pid, &status, 0 );
-            if(status != 0) fprintf( stderr, "Error: %d\n", status);
-         }        
-      }
-      tmp = tmp->next;
+static int parent_wait( pid_t child ) {
+   int status; 
+   int cached_errno;
+   waitpid( child, &status, 0 );
+   cached_errno = errno;
+   if( WIFEXITED( status ) ) {
+      return WEXITSTATUS( status );   
+   } 
+   else if( WIFSIGNALED( status )) {
+      fprintf( stderr, "Process terminated with signal %d: %s\n",
+               WTERMSIG( status ), strsignal(WTERMSIG(status)));
+      if( WIFSTOPPED(status))
+         fputs( "Process stoped\n", stderr);   
+      else if( WIFCONTINUED(status ))
+         fputs( "Process continued\n", stderr);   
+      status = cached_errno;
    }
-   return state;
+   return status; 
 }
-/*
-int exec_simple( command_t* cmd ) {
+static int exec_simple( command_t* cmd ) {
    int state = 0;
+   pid_t pid = fork();
+   switch( pid ) {
+      case -1:
+         state = errno;      
+         break;
+      case 0:
+         
+        (void)sef_def_signal();
+        if(cmd->env) setenv(cmd->env->key, cmd->env->value, true );
+        execvp( cmd->name, cmd->args );
+        _exit(EXIT_FAILURE);
 
+        break;
+      default: 
+         state = parent_wait( pid );   
+   } 
    return state;
 }
 
-int exec_redirected( command_t* cmd ) {
+static int exec_redirected( command_t* cmd ) {
    int state = 0;
 
    return state;
@@ -133,7 +137,8 @@ int execute( command_t* head ) {
             (void)set_shell_var( tmp->env );
             break;
          case SIMPLE:
-            status = exec_simple( tmp );
+            if((status = exec_builtin( tmp->name, tmp->args )) == ENOEXT ) 
+               status = exec_simple( tmp );
             break;
          case REDIRECTED:
             status = exec_redirected( tmp );
@@ -144,7 +149,7 @@ int execute( command_t* head ) {
          fprintf( stderr, "Unknown type: %s", tmp->name );
          status = -1;
       }
+      tmp = tmp->next;
    }
-   return 
+   return status;
 }
-*/

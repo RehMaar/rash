@@ -57,8 +57,16 @@ int set_shell_var( environ_t* env ) {
    }
    return ERROR;
 }
+int set_shell_var_key( char* key, char* value) {
+   if(value && key ) {
+      shell_environ = set_environ_value( shell_environ, key, value );  
+      return SUCCESS;
+   }
+   return ERROR;
+ 
+}
 char* get_shell_var( const char* key ) {
-   return get_environ_value( shell_environ, key );
+   return (char*)get_environ_value( shell_environ, key );
 }
 void print_shell_var( void ) {
    environ_t* tmp = shell_environ;

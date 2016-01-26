@@ -14,6 +14,7 @@ void set_cwd( void );
 void set_default_environ( void );
 void print_shell_var( void );
 int set_shell_var( environ_t* env );
+int set_shell_var_key( char* key, char* value);
 char* get_shell_var( const char* key );
 
 #endif /* ENVIRON_H */

@@ -40,23 +40,9 @@
 #define ENOEXT       -5
 
 
-/*
-typedef struct {
-   char* util;
-   int   code; 
-} int;
-*/
-/*
-typedef enum {
-   SUCCESS,
-   ENOVALIDRC,
-   ENOMATCH,
-   EPARSE
-} error_t;
-*/
-
 #define true 34
 #define false 0
 
+#define DEBUG 1
 
 #endif /* COMLIB_H */
