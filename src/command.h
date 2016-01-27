@@ -3,51 +3,89 @@
 
 #include "utillib.h"
 #include "environ.h"
+
 /*
    Metachar: ; < > | $ = 
    
-   Allowed commands: 
+Allowed commands: 
       list         --  cmd; cmd; cmd
       pipes        --  cmd | cmd | cmd
       redirections --  cmd > file
       environs     --  name=value; name=value cmd
-   Sample: 
-      LANG=ru_RU.UTF-8 ls -l; TEST=test   
-      Tokens:
-         LANG
-         =
-         ru_RU.UTF-8
-         ls
-         -l
-         ;
-         TEST
-         =
-         test
 */
 
-enum {
-   SIMPLE,
-   ENVIRON,
-   REDIRECTED,
-   GROUP
-} cmd_type_t;
+/*
+   N>string -- N -- fd( 1 ), string -- filenmae
+   N<string -- N -- fd( 0 ), string -- filename 
+   
+*/
 
+
+typedef enum {
+  STDIN = 0, 
+  STDOUT,
+  STDERR
+} stdfd_t;
+
+typedef enum {
+   FILENAME = 0,
+   FDR,
+   FDW
+} redir_type_t;
+
+
+/*
+ * Allowed: SOURCE > TARGET: SOURCE -- fd, TARGET -- file, fd( 1 )
+ *          TARGET < SOURCE: SOURCE -- file, TARGET -- fd( 0 );
+ */
+typedef struct redir_map_t {
+   union {
+      char* name;
+      stdfd_t fd;
+   } source;
+   union {
+      char* name;
+      stdfd_t fd; 
+   } target;
+   redir_type_t type_source;
+   redir_type_t type_target;
+   struct redir_map_t* next;
+} redir_map_t;
+
+typedef enum {
+   /* Tokens: */
+   SIMPLE = 0,
+   ENVIRON = 1,
+   /* Grouped: */
+   GROUP,
+   PIPELINE
+} cmd_type_t;
 
 typedef struct command_t {
    environ_t* env; 
+   redir_map_t* redir_map;
    char* name;
    char** args;
    
+   cmd_type_t type; 
+
    struct command_t* next;
 //   struct command_t* group; /* */
 } command_t;
 
-/* Add a node to the end of list from the local atack var. */
-void cmd_list_add_back( command_t** list, command_t* tmplist );
-/* Free allocated space. */
-void cmd_list_free( command_t * list);
-void print_commands( const command_t* head );
 
-int execute( command_t* head, int *stat );
+void cmd_list_add_back( command_t** list, command_t* tmplist );
+void destroy_cmd_list(command_t *list);
+
+void redir_map_add_back( redir_map_t** list, redir_map_t* tmplist );
+void destroy_redir_map( redir_map_t *list);
+
+
+#if DEBUG == 1
+   void print_commands( const command_t* head );
+#endif
+
+int execute( command_t* head );
+
 
 #endif /* COMMAND_H */

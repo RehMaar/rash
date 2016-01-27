@@ -41,6 +41,7 @@ int read_script( const char* configname ) {
    int state; 
    command_t* head = NULL;
    char** tokens = NULL;
+   ssize_t read;
 
    if(access(configname, R_OK) != 0 ) {
       perror( configname );
@@ -50,7 +51,6 @@ int read_script( const char* configname ) {
       perror( configname );
       return errno; 
    }
-   ssize_t read;
    while( (read = getline( &line, &len, fs )) != -1 ) {
       if( line[0] == '\n' || line[0] == '#' || (is_empty(line) == true) ) 
          continue;
@@ -60,27 +60,29 @@ int read_script( const char* configname ) {
       if(( tokens = splittok((const char*)line) ) == NULL ) 
          continue; 
       if(( state = parse_cmd( tokens, &head ))) {
-         fprintf(stderr, "Error: %d\n", state); 
-         destroy_tokens( tokens );
+         (void)fprintf(stderr, "Error: %d\n", state); 
+         (void)destroy_tokens( tokens );
          continue;
       }
-      destroy_tokens( tokens );
-      if(( state = execute( head, &stat ) )) {
-         fprintf(stderr, "Error: %d\n", state); 
+#if DEBUG == 1
+      (void)print_commands( head );
+#endif
+      (void)destroy_tokens( tokens );
+      if(( state = execute( head ) )) {
+         (void)fprintf(stderr, "Error: %d\n", state); 
          continue;
       }
-
       if( head == NULL ) 
-         fprintf( stderr, "Error: command parsing\n");
+         (void)fprintf( stderr, "Error: command parsing\n");
       else {
-         cmd_list_free( head ); 
+         (void)destroy_cmd_list( head ); 
          head = NULL;
       }
+      
    }
-
+   (void)set_exit_status(state);
    if( line ) free( line );
-   cmd_list_free( head ); 
+   if( head ) destroy_cmd_list( head ); 
    if( fs ) fclose( fs );
-
-   return SUCCESS;
+   return state;
 }

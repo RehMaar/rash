@@ -7,12 +7,13 @@ INIT_MAP_FUNC( environ )
 
 static environ_t* shell_environ;
 
-#define MAX_DEFAULT 1
+#define MAX_DEFAULT 2
 
 static struct _default_vars_t {
    char* name;
    char* value;
 } default_vars[MAX_DEFAULT] = {
+   { "EDITOR", "vim"     },
    { "PROMPT", "rash > " }
 };
 
@@ -33,16 +34,20 @@ void set_cwd( void ) {
    }
 }
 
+void set_exit_status( int state ) {
+   char buf[4];
+   sprintf( buf, "%d", state);
+   shell_environ = set_environ_value( shell_environ, "?", buf);
+}
 void set_default_environ( void ) {
    pid_t pid; char buf[6];
 
    /* Set PWD and OLDPWD variables. */
    (void)set_cwd();
 
-   /* Set $ -- shell's pid, ? -- exit status pid. */
+   /* Set $ -- shell's pid. */
    sprintf( buf, "%d", getpid()); 
    shell_environ = set_environ_value( shell_environ, "$", buf);
-   shell_environ = set_environ_value( shell_environ, "?", "0");
 
    /* Set other shell's variables. */
    for( int i = 0; i < MAX_DEFAULT;i++) {
@@ -57,8 +62,16 @@ int set_shell_var( environ_t* env ) {
    }
    return ERROR;
 }
+int set_shell_var_key( char* key, char* value) {
+   if(value && key ) {
+      shell_environ = set_environ_value( shell_environ, key, value );  
+      return SUCCESS;
+   }
+   return ERROR;
+ 
+}
 char* get_shell_var( const char* key ) {
-   return get_environ_value( shell_environ, key );
+   return (char*)get_environ_value( shell_environ, key );
 }
 void print_shell_var( void ) {
    environ_t* tmp = shell_environ;

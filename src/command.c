@@ -1,13 +1,90 @@
-#include <sys/wait.h>
+//#define _GNU_SOURCE
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "utillib.h"
 #include "command.h"
 #include "environ.h"
 #include "builtin.h"
+#include "sig_manager.h"
 
+
+#define ADD_BACK_LIST( _name, _type, body )              \
+static _type* _name##_create( _type* list ) {            \
+   _type* node;                                          \
+   if( list == NULL ) return NULL;                       \
+  	node = ALLOCATE(_type, 1);                            \
+   body                                                  \
+   return node;                                          \
+}                                                        \
+void _name##_add_back( _type** list, _type* tmplist ){   \
+   _type* node;                                          \
+   if(*list == NULL){                                    \
+      *list = _name##_create(tmplist);                   \
+      return;                                            \
+   }                                                     \
+	node = *list;                                         \
+	while(node->next != NULL)                             \
+		node = node->next;                                 \
+	node->next = _name##_create(tmplist);	               \
+}   
+
+
+#define DESTROY_LIST( _name, _type, body )               \
+void destroy_##_name( _type* list ) {                    \
+   _type* tmp;                                           \
+   while( list != NULL ) {                               \
+      tmp = list->next;                                  \
+      body                                               \
+      list = tmp;                                        \
+   }                                                     \
+}
+
+ADD_BACK_LIST ( redir_map, redir_map_t,
+   node->target = list->target;
+   node->source = list->source;
+   node->type_source = list->type_source;
+   node->type_target = list->type_target;
+   node->next = NULL;
+)
+
+DESTROY_LIST ( redir_map, redir_map_t,
+   if( list->type_source == FILENAME && list->source.name ) 
+      free(list->source.name);
+   if( list->type_target == FILENAME && list->target.name ) 
+      free(list->target.name);
+   free( list );   
+)
+
+ADD_BACK_LIST( cmd_list, command_t, 
+   node->env = list->env;
+   node->name = list->name;
+   node->args = list->args;
+   node->type = list->type;
+   node->redir_map = list->redir_map;
+   node->next = NULL;
+)
+DESTROY_LIST( 
+   cmd_list, command_t, 
+   if( list->env )  destroy_environ_map(list->env);
+      if( list->redir_map ) destroy_redir_map( list->redir_map );
+      if( list->name ) free(list->name);
+      if( list->args ) {
+         int i = 0;
+         while( list->args[i]) free(list->args[i++]);
+         free( list->args );
+      }
+      free(list);
+)
+
+/*
 static command_t *cmd_list_create( command_t* list ){
 	command_t *node;
    if( list == NULL ) return NULL;
@@ -15,6 +92,8 @@ static command_t *cmd_list_create( command_t* list ){
    node->env = list->env;
    node->name = list->name;
    node->args = list->args;
+   node->type = list->type;
+   node->redir_map = list->redir_map;
    node->next = NULL;
 	return node;		
 }
@@ -32,12 +111,14 @@ void cmd_list_add_back( command_t **list, command_t* tmplist ){
 	*list = node;	
 }
 
-void cmd_list_free(command_t *list){
+
+void destroy_cmd_list(command_t *list){
 	command_t *tail; 
    int i;
 	while(list != NULL){
 		tail = list->next;
 		if( list->env )  destroy_environ_map(list->env);
+      if( list->redir_map ) destroy_redir_map( list->redir_map );
       if( list->name ) free(list->name);
       if( list->args ) {
          i = 0;
@@ -48,77 +129,181 @@ void cmd_list_free(command_t *list){
 		list = tail;
    }
 }
-
+*/
+#if DEBUG == 1
 void print_commands( const command_t* head ) {
    if( head ) {                                                         
       command_t* head_tmp = (command_t*)head;                                     
       while( head_tmp ) {                                             
-         puts( "New command" );
-         if(head_tmp->name) printf("Name: %s\n", head_tmp->name);   
+         puts( "<--- Command --->" );
+         printf("> Type: %d\n", head_tmp->type);
+         if(head_tmp->name) printf("> Name: %s\n", head_tmp->name);   
          if(head_tmp->args) {                                         
             int head_iter = 0;                                        
             while(head_tmp->args[head_iter]) {                      
-               printf("Args: %s\n", head_tmp->args[head_iter++]);   
+               printf("> Args: %s\n", head_tmp->args[head_iter++]);   
             }                                                           
          }                                                              
          if(head_tmp->env) {                                          
            environ_t* head_env = head_tmp->env;                     
            while( head_env ) {                                        
-               printf("Environ: %s=%s\n", head_env->key, head_env->value);  
+               printf("> Environ: %s=%s\n", head_env->key, head_env->value);  
                head_env = head_env->next;                           
            }                                                            
          }                                                              
+         if( head_tmp->redir_map ) {
+            redir_map_t* tmp = head_tmp->redir_map;
+            while( tmp ) {
+               if( tmp->type_source == FDR || tmp->type_source == FDW )
+                  printf( "> Type: %d Source FD: %d\n", 
+                           tmp->type_source, tmp->source.fd );
+               else 
+                  printf( "> Type: %d Source file: %s\n", 
+                           tmp->type_source, tmp->source.name);
+               if( tmp->type_target == FDR || tmp->type_target == FDR )
+                  printf( "> Type: %d Target FD: %d\n", 
+                           tmp->type_target, tmp->target.fd );
+               else 
+                  printf( "> Type: %d Target file: %s\n", 
+                           tmp->type_target, tmp->target.name);
+               tmp = tmp->next;
+            }
+         }
          head_tmp = head_tmp->next;                                 
       }                                                                 
    }
 }
+#endif
 
-int execute( command_t* head, int *stat ) {
-
-   int state = 0; 
-   command_t* tmp = head;
-   *stat = 0;
-
-   while( tmp ) {
-      if( tmp->name == NULL ) {
-         (void)set_shell_var( tmp->env );
-      }
-      else if( exec_builtin( tmp->name, tmp->args ) != ENOEXT ) {
-         *stat = state;
-      }
-      else {
-         pid_t pid;
-         int status;
-
-         pid = fork();
-         if( pid == 0 ) {
-            if(tmp->env) 
-               setenv(tmp->env->key, tmp->env->value, true );
-            execvp( tmp->name, tmp->args );
-            _exit(EXIT_FAILURE);
-         }
-         else if( pid < 0 ) {
-            state =  errno; 
-         }
-         else {
-            waitpid( pid, &status, 0 );
-            if(status != 0) fprintf( stderr, "Error: %d\n", status);
-         }        
-      }
-      tmp = tmp->next;
+static int parent_wait( pid_t child ) {
+   int status; 
+   int cached_errno;
+   waitpid( child, &status, 0 );
+   cached_errno = errno;
+   if( WIFEXITED( status ) ) {
+      return WEXITSTATUS( status );   
+   } 
+   else if( WIFSIGNALED( status )) {
+      fprintf( stderr, "Process terminated with signal %d: %s\n",
+               WTERMSIG( status ), strsignal(WTERMSIG(status)));
+      if( WIFSTOPPED(status))
+         fputs( "Process stoped\n", stderr);   
+      else if( WIFCONTINUED(status ))
+         fputs( "Process continued\n", stderr);   
+      status = cached_errno;
    }
-   return state;
+   return status; 
 }
+
+static int redirect( redir_map_t* cmd ) {
+   int fd_target,fd_source;
+   if( cmd ) {
+      redir_map_t* tmp = cmd;
+       while( tmp ) {
+         switch( tmp->type_source ) {
+            case FDR:
+               fd_source = tmp->source.fd;
+               switch( tmp->type_target ) {
+                  case FDR:
+                  fd_target = tmp->target.fd; 
+                     break;
+                  case FILENAME:
+                     fd_target = open( tmp->target.name, 
+                                       O_RDONLY|O_CREAT,
+                                       S_IRUSR| S_IWUSR|S_IRGRP|
+                                       S_IWGRP|S_IROTH|S_IWOTH
+                                     );
+                    break;
+                  default:
+                     fputs("Error: unknown target type.\n", stderr);
+                     return -1;
+               }
+               break;
+            case FDW:
+               fd_source = tmp->source.fd;
+               switch( tmp->type_target ) {
+                  case FDW:
+                  fd_target = tmp->target.fd; 
+                     break;
+                  case FILENAME:
+                     fd_target = open( tmp->target.name, 
+                                       O_WRONLY|O_CREAT,
+                                       S_IRUSR| S_IWUSR|S_IRGRP|
+                                       S_IWGRP|S_IROTH|S_IWOTH
+                                     );
+                    break;
+                  default:
+                     fputs("Error: unknown target type.\n", stderr);
+                     return -1;
+               }
+               break;
+            default:
+               fputs( "Error: unknown source type.\n", stderr);
+               return -1;
+         }
+         if( fd_target != fd_source ) {
+            dup2( fd_target, fd_source);
+            close(fd_target);
+         }
+         tmp = tmp->next;
+      }
+   }
+   return 0;
+}
+static int exec_simple( command_t* cmd ) {
+   int state = 0, fd_target,fd_source;
+
 /*
-int exec_simple( command_t* cmd ) {
-   int state = 0;
-
-   return state;
-}
-
-int exec_redirected( command_t* cmd ) {
-   int state = 0;
-
+   if( cmd->redir_map ) {
+      redir_map_t* tmp = cmd->redir_map;
+       while( tmp ) {
+         switch( tmp->redir_map->type_source ) {
+            case FD:
+               fd_source = tmp->redir_map->source.fd;
+               switch( tmp->redir_map->type_target ) {
+                  case FD:
+                  fd_target = tmp->redir_map->target.fd; 
+                     break;
+                  case FILENAME:
+                     fd_target = open( tmp->redir_map->target.name, 
+                                       O_WRONLY|O_CREAT,
+                                       S_IRUSR| S_IWUSR|S_IRGRP|
+                                       S_IWGRP|S_IROTH|S_IWOTH
+                                     );
+                    break;
+                  default:
+                     fputs("Error: unknown target type.\n", stderr);
+                     return -1;
+               }
+               break;
+            case FILENAME:
+            default:
+               fputs( "Error: unknown source type.\n", stderr);
+               return -1;
+         }
+         if( fd_target != fd_source ) {
+            dup2( fd_target, fd_source);
+            close(fd_target);
+         }
+         tmp = tmp->next;
+      }
+   }
+ */ 
+   pid_t pid = fork();
+   switch( pid ) {
+      case -1:
+         state = errno;      
+         break;
+      case 0:
+        (void)sef_def_signal();
+        redirect( cmd->redir_map );
+        if(cmd->env) setenv(cmd->env->key, cmd->env->value, true );
+        execvp( cmd->name, cmd->args );
+        exit(EXIT_FAILURE);
+        break;
+      default: 
+         state = parent_wait( pid );   
+   } 
    return state;
 }
 
@@ -133,18 +318,18 @@ int execute( command_t* head ) {
             (void)set_shell_var( tmp->env );
             break;
          case SIMPLE:
-            status = exec_simple( tmp );
+            if((status = exec_builtin( tmp->name, tmp->args )) == ENOEXT ) 
+               status = exec_simple( tmp );
             break;
-         case REDIRECTED:
-            status = exec_redirected( tmp );
-            break;         
+         case PIPELINE:
+            break;
          case GROUP:
             break;
         default:
          fprintf( stderr, "Unknown type: %s", tmp->name );
          status = -1;
       }
+      tmp = tmp->next;
    }
-   return 
+   return status;
 }
-*/

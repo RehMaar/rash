@@ -54,30 +54,39 @@ int is_empty( const char* line ) {
    return true;
 }
 
-#define CLEAR_BUFFERS( buf, envir )  \
-   buf.env  = NULL;                  \
-   buf.name = NULL;                  \
-   buf.args = NULL;                  \
-   buf.next = NULL;                  \
-   envir = NULL;
-
-#define WRITE_BUFFER( buf, tok, start, end )             \
-    length = end-start+2;                                \
-    buf.name = strdup( tok[start] );                     \
-    buf.args = ALLOCATE(char*, length);                  \
-    for( int iter = 0; iter < length-1; iter++ ) {       \
-       buf.args[iter] = strdup(tok[start+iter]);         \
-    }                                                    \
-    buf.args[length-1] = NULL;
+static void clear_buffers( command_t* buf, environ_t** env, redir_map_t** redir ){
+   buf->env  = NULL;                  
+   buf->name = NULL;                  
+   buf->args = NULL;                  
+   buf->next = NULL;                  
+   buf->redir_map = NULL;
+   buf->type = 0;
+   *env = NULL;
+   *redir = NULL; 
+}
+   
+static void write_buffer(command_t* buf,char** tok,
+                        int s,int e,cmd_type_t t ){
+    int length = e-s+2; 
+    buf->name = strdup( tok[s] ); 
+    buf->args = ALLOCATE(char*, length);
+    buf->type = t;
+    for( int iter = 0; iter < length-1; iter++ ) {
+       buf->args[iter] = strdup(tok[s+iter]);
+    }
+    buf->args[length-1] = NULL;
+}
 
 int parse_cmd( char** tokens, command_t** head ) {
 
    command_t buffer;
-   environ_t* env = NULL; 
+   environ_t* env; 
+   redir_map_t* redir;
+
    char* line = NULL, *prev = NULL;
-   int i = 0, cmd_s = 0, cmd_e = 0, length;
+   int i = 0, cmd_s = 0, cmd_e = 0, length, r_offset = 0;
     
-   CLEAR_BUFFERS( buffer, env )
+   clear_buffers( &buffer, &env, &redir );
    while((line = tokens[i])) {
       if( line[0] == DOLLAR && strlen(line) != 0) {
          char* env;
@@ -125,41 +134,108 @@ int parse_cmd( char** tokens, command_t** head ) {
    }
    i=0;
    prev = tokens[i];
-   while(( line = tokens[i] )) {
-      if( strlen(line) == 1) {
-         if( line[0] == ';' ) {   
-            if( cmd_s <= cmd_e ) {
-               WRITE_BUFFER(buffer,tokens,cmd_s,cmd_e)
-            }
-            cmd_list_add_back( head, &buffer);            
-            CLEAR_BUFFERS( buffer, env )
-            cmd_s = i+1; 
+   while((line = tokens[i])) {
+      if(strcmp( line, ";") == 0 ) {
+         if( cmd_s <= cmd_e ) {
+            write_buffer(&buffer,tokens,cmd_s,cmd_e, SIMPLE);
          }
-         else if( line[0] == '=' && i == (cmd_s+1)) {
-           if( strlen(prev) == 1 && 
-                  (is_metachar(prev[0]) || is_shell_var(prev[0]))) {
-               return EPARSE;
-            }
-            env = add_back_environ_map( env, prev, tokens[i+1]); 
-            buffer.env = env;
-            cmd_s = i+2;
+            cmd_list_add_back( head, &buffer);            
+            clear_buffers( &buffer, &env, &redir );
+            cmd_s = i+1; 
+      }
+      else if(strcmp( line, ">") == 0) {
+         redir_map_t tmp_redir;
+         if( strcmp( prev, "2") == 0 ) {
+            tmp_redir.source.fd = STDERR;
+            if( redir == NULL )cmd_e = i-2;
          }
          else {
-            cmd_e = i;
+            tmp_redir.source.fd = STDOUT;
+            if( redir == NULL )cmd_e = i-1;
          }
-       }
-       else {
+         tmp_redir.type_source = FDW;
+
+#if DEBUG == 1
+         printf( "Source: %d Type: %d\n", 
+                  tmp_redir.source.fd, tmp_redir.type_source ); 
+#endif
+         if((line = tokens[i+1])) {
+            i++;
+            if(strcmp(line, "&") == 0) {
+               if((line = tokens[i+1])) {
+                  i++;
+                  if( strcmp(line, "1") == 0 ){
+                     tmp_redir.target.fd = STDIN;
+                     tmp_redir.type_target = FDW;
+#if DEBUG == 1
+                     printf( "Target: %d Type: %d\n", 
+                        tmp_redir.target.fd, tmp_redir.type_target ); 
+#endif
+                     }
+                  else if( strcmp(line, "2") == 0) {
+                     tmp_redir.target.fd = STDERR;
+                     tmp_redir.type_target = FDW;
+#if DEBUG == 1
+                     printf( "Target: %d Type: %d\n", 
+                        tmp_redir.target.fd, tmp_redir.type_target ); 
+#endif            
+                  }
+                  else
+                     return EPARSE;
+
+               }
+               else
+                  return EPARSE;
+            }        
+            else {
+               tmp_redir.target.name = strdup(line);
+               tmp_redir.type_target = FILENAME;
+           }
+            redir_map_add_back( &redir, &tmp_redir);         
+            buffer.redir_map = redir;
+         }
+         else 
+            return EPARSE;
+      }
+      else if(strcmp( line, "<") == 0) {
+         redir_map_t tmp_redir;
+         tmp_redir.source.fd = STDIN;
+         if( redir == NULL )cmd_e = i-1;
+         tmp_redir.type_source = FDR;
+
+         if((line = tokens[i+1])) {
+            i++;
+            tmp_redir.target.name = strdup(line);
+            tmp_redir.type_target = FILENAME;
+        }
+         else {
+            return EPARSE;
+         }
+         redir_map_add_back( &redir, &tmp_redir);         
+         buffer.redir_map = redir;
+      }
+      else if((strcmp(line, "=") == 0) && i == (cmd_s+1)) {
+         if( strlen(prev) == 1 && 
+               (is_metachar(prev[0]) || is_shell_var(prev[0]))) {
+            return EPARSE;
+         }
+         env = add_back_environ_map( env, prev, tokens[i+1]); 
+         buffer.env = env;
+         cmd_s = i+2;
+      }
+      else {
          cmd_e = i;
-       }
-       prev = line;
-       i++;
+      }
+      prev = line;
+      i++;
    }
    if( cmd_s <= cmd_e ) {
-      WRITE_BUFFER(buffer,tokens,cmd_s,cmd_e)
+      write_buffer(&buffer,tokens,cmd_s,cmd_e,SIMPLE);
       cmd_list_add_back( head, &buffer);                  
    }
    else if( env ) {
+      buffer.type = ENVIRON;
       cmd_list_add_back( head, &buffer);                  
    }
-   return SUCCESS;
+   return 0;
 }
