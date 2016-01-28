@@ -6,12 +6,10 @@
 #include <errno.h>
 
 /* Useful things. I hope. */
-#define TEST( condition ) if( condition ) return errno;
+
 
 /* Memmory managing. */
 #define ALLOCATE( type, count) (type*)calloc(sizeof(type), count)
-
-
 
 #define SHOW( array )                  \
    if( array ) {                       \

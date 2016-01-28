@@ -37,7 +37,6 @@ int read_script( const char* configname ) {
    FILE* fs; 
    char* line = NULL;
    size_t len = 0;
-   int stat; 
    int state; 
    command_t* head = NULL;
    char** tokens = NULL;

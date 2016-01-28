@@ -18,12 +18,10 @@
 int main( int argc, char **argv ) {
 
    char* line = NULL;
-   char buf[4];
 #if __GNU_READLINE != 1
    size_t len = 0;
 #endif
    int state; 
-   int stat;
 
   (void)set_signal();
 
@@ -33,6 +31,7 @@ int main( int argc, char **argv ) {
 
    (void)run_init_script( confignames );  
    (void)set_default_environ();
+
 #if __GNU_READLINE == 1
    while(( line = readline( getenv("PROMPT") ))) {
 #else
@@ -53,16 +52,21 @@ int main( int argc, char **argv ) {
          fputs( "Error while parsing command.\n", stderr );
          continue;
       }
+
       if((state = parse_cmd( tokens, &head ))) {
+         (void)set_exit_status( state );
          (void)destroy_tokens( tokens );
          (void)destroy_cmd_list( head ); 
-         fprintf( stderr, "Error while parsing command: %d\n", state);  
+         fputs( "Error while parsing command.\n", stderr );  
          continue;
       }
 #if DEBUG == 1
+      //SHOW(tokens)
       (void)print_commands( head );
 #endif
       state = execute( head );
+      if( state == ENOENT ) 
+         fprintf(stderr, "%s: command not found `%s'", argv[0],head->name);
       (void)set_exit_status( state );
       (void)destroy_tokens( tokens );
       (void)destroy_cmd_list( head ); 

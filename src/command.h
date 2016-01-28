@@ -14,12 +14,6 @@ Allowed commands:
       environs     --  name=value; name=value cmd
 */
 
-/*
-   N>string -- N -- fd( 1 ), string -- filenmae
-   N<string -- N -- fd( 0 ), string -- filename 
-   
-*/
-
 
 typedef enum {
   STDIN = 0, 
@@ -33,11 +27,6 @@ typedef enum {
    FDW
 } redir_type_t;
 
-
-/*
- * Allowed: SOURCE > TARGET: SOURCE -- fd, TARGET -- file, fd( 1 )
- *          TARGET < SOURCE: SOURCE -- file, TARGET -- fd( 0 );
- */
 typedef struct redir_map_t {
    union {
       char* name;
@@ -53,11 +42,8 @@ typedef struct redir_map_t {
 } redir_map_t;
 
 typedef enum {
-   /* Tokens: */
    SIMPLE = 0,
    ENVIRON = 1,
-   /* Grouped: */
-   GROUP,
    PIPELINE
 } cmd_type_t;
 
@@ -86,6 +72,5 @@ void destroy_redir_map( redir_map_t *list);
 #endif
 
 int execute( command_t* head );
-
 
 #endif /* COMMAND_H */

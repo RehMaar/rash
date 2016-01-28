@@ -16,7 +16,7 @@
    * N>[&fd|filename] where N is either stderr ( N = 2) or stdin ( N='').                  
    * N<[filename] where N is stdin.       
 4. Environment:            
-   Supported to type of variables:              
+   Supported two type of variables:              
    * Environment variables is global variables inherited by child processes.           
      > export NAME=VAR               
    * Shell's local variables are available in the current shell.          

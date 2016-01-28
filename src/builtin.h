@@ -3,6 +3,7 @@
 
 #include "utillib.h"
 
-int exec_builtin( char* name, char** args );
+int execute_builtin( int index, char** args );
+int is_builtin( char* name );
 
 #endif /* BUILTIN_H */

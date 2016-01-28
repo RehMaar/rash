@@ -87,8 +87,21 @@ struct _builins_t {
    }
 };
 
+int is_builtin( char* name ) {
+   for(int i = 0; i < BUILTINS_COUNT; i++) {
+      if( strcmp( builtins_list[i].name, name ) == 0){
+         return i;
+      }
+   }
+   return -1; 
 
-int exec_builtin( char* name, char** args ) {
+}
+int execute_builtin( int index, char** args ) {
+   return builtins_list[index].func( args );
+}
+
+/*
+int execute_builtin( char* name, char** args ) {
    int state;
    for(int i = 0; i < BUILTINS_COUNT; i++) {
       if( strcmp( builtins_list[i].name, name ) == 0){
@@ -98,7 +111,7 @@ int exec_builtin( char* name, char** args ) {
    }
    return ENOEXT; 
 }
-
+*/
 static int rashhelp( char** args ) {
    for( int i = 0; i < BUILTINS_COUNT; i++)
          printf( "> %s -- %s\nUsage: %s\n", 

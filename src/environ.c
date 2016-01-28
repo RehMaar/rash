@@ -40,8 +40,7 @@ void set_exit_status( int state ) {
    shell_environ = set_environ_value( shell_environ, "?", buf);
 }
 void set_default_environ( void ) {
-   pid_t pid; char buf[6];
-
+   char buf[6];
    /* Set PWD and OLDPWD variables. */
    (void)set_cwd();
 

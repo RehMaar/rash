@@ -3,7 +3,7 @@
 
 #include "utillib.h"
 
-void sef_def_signal( void );
+void set_def_signal( void );
 void set_signal( void );
 
 #endif /* SIG_MANAGER_H */
