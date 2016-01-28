@@ -69,8 +69,8 @@ struct _builins_t {
    },
    { 
       "umask",     
-      "",
-      "",
+      "get or set the file mode creation mask",
+      "umask XXX, X -> [0-7]",
       umask_builtin
    },
    { 
@@ -100,18 +100,6 @@ int execute_builtin( int index, char** args ) {
    return builtins_list[index].func( args );
 }
 
-/*
-int execute_builtin( char* name, char** args ) {
-   int state;
-   for(int i = 0; i < BUILTINS_COUNT; i++) {
-      if( strcmp( builtins_list[i].name, name ) == 0){
-         state = builtins_list[i].func( args );
-         return state;
-      }
-   }
-   return ENOEXT; 
-}
-*/
 static int rashhelp( char** args ) {
    for( int i = 0; i < BUILTINS_COUNT; i++)
          printf( "> %s -- %s\nUsage: %s\n", 

@@ -3,12 +3,16 @@
 #include "parser.h"
 #include "command.h"
 #include "lexer.h"
-
+#include <ctype.h>
 #include <errno.h>
 
 
-static int sub_env( char** str ) {
+/* TODO: substitute all environments. */
+int sub_path_env( char** str ) {
    char* tmp, *token, *value, *save;
+   
+   if( !strchr( *str, DOLLAR ) ) return SUCCESS;
+
    token = strtok_r( *str, "$/", &save);
    if((value = getenv(token)) == NULL )
       return ENOMATCH;  
@@ -16,6 +20,7 @@ static int sub_env( char** str ) {
    sprintf(tmp,"%s/%s",value,save);
    free(*str);
    *str = tmp;
+
    return SUCCESS;
 }
 
@@ -23,7 +28,7 @@ int run_init_script( const char** confignames ) {
    int i = 0;
    while( confignames[i]) {
       char* config = strdup( confignames[i++]);
-      sub_env( &config );
+      sub_path_env( &config );
       (void)read_script(config);
       free(config);
    }
@@ -43,12 +48,16 @@ int read_script( const char* configname ) {
    ssize_t read;
 
    if(access(configname, R_OK) != 0 ) {
+#ifndef DEBUG
       perror( configname );
-      return errno;
+#endif
+      return ENOVALIDRC;
    }
    if(( fs = fopen( configname, "r" ) ) == NULL ) {
+#ifndef DEBUG
       perror( configname );
-      return errno; 
+#endif
+      return ENOVALIDRC; 
    }
    while( (read = getline( &line, &len, fs )) != -1 ) {
       if( line[0] == '\n' || line[0] == '#' || (is_empty(line) == true) ) 
@@ -63,7 +72,7 @@ int read_script( const char* configname ) {
          (void)destroy_tokens( tokens );
          continue;
       }
-#if DEBUG == 1
+#ifdef DEBUG
       (void)print_commands( head );
 #endif
       (void)destroy_tokens( tokens );

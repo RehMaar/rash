@@ -67,7 +67,7 @@ void redir_map_add_back( redir_map_t** list, redir_map_t* tmplist );
 void destroy_redir_map( redir_map_t *list);
 
 
-#if DEBUG == 1
+#ifdef DEBUG
    void print_commands( const command_t* head );
 #endif
 

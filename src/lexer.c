@@ -53,7 +53,7 @@ int is_empty( const char* line ) {
    return true;
 }
 
-static void clear_buffers( command_t* buf, environ_t** env, redir_map_t** redir ){
+static void clear_buffers(command_t* buf,environ_t** env,redir_map_t** redir){
    buf->env  = NULL;                  
    buf->name = NULL;                  
    buf->args = NULL;                  
@@ -64,8 +64,7 @@ static void clear_buffers( command_t* buf, environ_t** env, redir_map_t** redir 
    *redir = NULL; 
 }
    
-static void write_buffer(command_t* buf,char** tok,
-                        int s,int e,cmd_type_t t ){
+static void write_buffer(command_t* buf,char** tok, int s,int e,cmd_type_t t ){
     int length = e-s+2; 
     buf->name = strdup( tok[s] ); 
     buf->args = ALLOCATE(char*, length);
@@ -101,6 +100,7 @@ static void write_buffer(command_t* buf,char** tok,
 }
 
 #define CMP( line, tok ) if(( strcmp( line, tok ) == 0 ))
+
 int parse_cmd( char** tokens, command_t** head ) {
    command_t buffer;   /* Buffer for each command. */
    environ_t* env;     /* Environment map for each command. */
@@ -117,7 +117,7 @@ int parse_cmd( char** tokens, command_t** head ) {
    
    while(( line = tokens[i] )) {
       if( line[0] == DOLLAR && strlen(line) != 0) {
-#if DEBUG == 1
+#ifdef DEBUG
          printf( "Environ: `%s'\n", line );
 #endif
          char* env_buf;
@@ -140,7 +140,7 @@ int parse_cmd( char** tokens, command_t** head ) {
      
       CMP( line, ";" ) 
       {
-#if DEBUG == 1
+#ifdef DEBUG
          printf( "Terminate `;' : %s\n", line );
 #endif
          if(!(buffer.name && buffer.args)) {
@@ -161,7 +161,7 @@ int parse_cmd( char** tokens, command_t** head ) {
       }
       else CMP( line, "|" )
       {
-#if DEBUG == 1
+#ifdef DEBUG
          printf( "Pipeline `|' : %s\n", line );
 #endif
          if(!(prev) || !tokens[i+1]) {
@@ -186,7 +186,7 @@ int parse_cmd( char** tokens, command_t** head ) {
       }
       /* SOURCE > TARGET */
       else CMP( line, ">") {
-#if DEBUG == 1
+#ifdef DEBUG
          printf( "Redirection `>' : %s\n", line );
 #endif
          redir_map_t tmp_redir;
@@ -242,7 +242,7 @@ int parse_cmd( char** tokens, command_t** head ) {
          }
       }
       else CMP( line, "<" ) {
-#if DEBUG == 1
+#ifdef DEBUG
          printf( "Redirection `<' : %s\n", line );
 #endif  
          if( !prev ) return EPARSE;
@@ -266,7 +266,7 @@ int parse_cmd( char** tokens, command_t** head ) {
          buffer.redir_map = redir;
       }
       else CMP( line, "=" ) {
-#if DEBUG == 1
+#ifdef DEBUG 
          printf( "Environ `=' : %s\n", line );
 #endif
         /* NAME=VAR: NAME -- cmd_s, = -- cmd_s+1. Only first.*/
@@ -286,7 +286,7 @@ int parse_cmd( char** tokens, command_t** head ) {
       }
       else 
       {
-#if DEBUG == 1
+#ifdef DEBUG
          printf( "Token: %s\n", line );
 #endif 
          cmd_e = i; 

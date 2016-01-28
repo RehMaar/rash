@@ -36,12 +36,21 @@
 #define ENOVALIDRC   -2
 #define ENOMATCH     -3
 #define EPARSE       -4
-#define ENOEXT       -5
-
+#define ENOEXT       255
 
 #define true 34
 #define false 0
 
-#define DEBUG 1
+#define DEBUG
 
+/*
+typedef enum {
+   SUCCESS = 0,
+   ERROR   = 1,
+   ENOVALIDRC,
+   ENOMATCH,
+   EPARSE,    
+   ENOEXT    
+} error_t;
+*/
 #endif /* COMLIB_H */

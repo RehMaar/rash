@@ -59,7 +59,7 @@ static int exec_simple( command_t*, int* );
 static int exec_pipeline( command_t** );
 static int redirect( redir_map_t* );
 
-
+/* Init redirections list. */
 ADD_BACK_LIST ( redir_map, redir_map_t,
    node->target = list->target;
    node->source = list->source;
@@ -75,6 +75,7 @@ DESTROY_LIST ( redir_map, redir_map_t,
    free( list );   
 )
 
+/* Init command list. */
 ADD_BACK_LIST( cmd_list, command_t, 
    node->env = list->env;
    node->name = list->name;
@@ -96,7 +97,7 @@ DESTROY_LIST(
       free(list);
 )
 
-#if DEBUG == 1
+#ifdef DEBUG
 void print_commands( const command_t* head ) {
    if( head ) {                                                         
       command_t* head_tmp = (command_t*)head;                                     
@@ -146,6 +147,9 @@ static int parent_wait( pid_t child ) {
    int cached_errno;
    waitpid( child, &status, 0 );
    cached_errno = errno;
+#ifdef DEBUG
+   printf( "Exit status: %d\n", WEXITSTATUS(status));
+#endif 
    if( WIFEXITED( status ) ) {
       return WEXITSTATUS( status );   
    } 
@@ -219,20 +223,11 @@ static int redirect( redir_map_t* cmd ) {
 
 /*
  *  cmd1 | cmd2 | cmd3 | cmd4 
- *  cmd1 : pipe( fd )
- *         /dev/null -> 0 
- *         1 -> pipe fd[1]
- *  cmd2 : 
- *         pipe fd[0] -> 0
- *         1 -> pipe 
- *
- *
- *
+ * pipe( fd )
  * fd[0] -- read
  * fd[1] -- write
- * fd [1] -> ==== -> fd[0]
+ * fd[1] -> ==== -> fd[0]
  */
-
 
 static int exec_pipeline( command_t** cmd ) {
    int state, fd_read, fd_write, fd[2], export_fd[2];
@@ -243,13 +238,17 @@ static int exec_pipeline( command_t** cmd ) {
       export_fd[1] = fd[1];
       
       state = exec_simple( *cmd, export_fd );
+#ifdef DEBUG
       printf( "Name: %s\nFD: %d %d\n", (*cmd)->name, export_fd[0], export_fd[1]);
+#endif
       close(fd[1]);
       if( fd_read >= 0 ) close( fd_read ); 
       fd_read = fd[0];
       *cmd = (*cmd)->next;
    }
+#ifdef DEBUG
    printf( "Name: %s\n", (*cmd)->name);
+#endif
    export_fd[0] = fd_read; export_fd[1] = -1;
    state = exec_simple( *cmd, export_fd );
    return state;
@@ -277,7 +276,6 @@ static int exec_simple( command_t* cmd, int* fd ) {
          state = errno;      
          break;
       case 0:
-         
          (void)set_def_signal();
          (void)redirect( cmd->redir_map );
          if(cmd->env) setenv(cmd->env->key, cmd->env->value, true );

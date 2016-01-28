@@ -1,6 +1,6 @@
 #include "parser.h"
 #include "lexer.h"
-
+#include <ctype.h>
 static int tokens_count( const char* test_str ) {
 
    int count = 0;
@@ -18,7 +18,7 @@ static int tokens_count( const char* test_str ) {
       else if( c == DOLLAR ) {
          count++;i++;
          if(( c = test_str[i++])) {
-            while(is_blank(c) || is_metachar(c)) {
+            while(is_blank(c) || is_metachar(c) || ispunct(c)) {
                if( c == ZERO ) return count;
                c = test_str[i++];
             }
@@ -45,7 +45,7 @@ char** splittok( const char* line ) {
    char buffer[256];
    char* tmp = (char*)line;
    int count = tokens_count( line );
-
+  
    if( count <= 0 )  return NULL;
    tokens = calloc(sizeof(char*),(count+1));
    c = last_char = tmp[0];
